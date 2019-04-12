@@ -1,0 +1,26 @@
+{
+  "name": "texture-xmlschema",
+  "version": "1.0.0",
+  "description": "Toolset for working with xml schemas.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/oliver----/texture-xmlschema.git"
+  },
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/oliver----/texture-xmlschema/issues"
+  },
+  "homepage": "https://github.com/oliver----/texture-xmlschema#readme",
+  "devDependencies": {
+    "substance": "0.141.0",
+    "substance-bundler": "0.25.5"
+  },
+  "peerDependencies": {
+    "substance": "0.141.0"
+  }
+}
