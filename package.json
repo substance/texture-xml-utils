@@ -1,26 +1,33 @@
 {
-  "name": "texture-xmlschema",
+  "name": "texture-xml-utils",
   "version": "1.0.0",
   "description": "Toolset for working with xml schemas.",
-  "main": "index.js",
+  "main": "dist/texture-xml-utils.cjs.js",
+  "jsnext:main": "index.es.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node --require esm test | tap-spec",
+    "test-debug": "node --inspect-brk --require esm test",
+    "cover": "nyc --require esm --reporter=lcov --reporter=text node test"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/oliver----/texture-xmlschema.git"
+    "url": "git+https://github.com/substance/texture-xml-utils.git"
   },
   "author": "",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/oliver----/texture-xmlschema/issues"
+    "url": "https://github.com/substance/texture-xml-utils/issues"
   },
-  "homepage": "https://github.com/oliver----/texture-xmlschema#readme",
+  "homepage": "https://github.com/substance/texture-xml-utils#readme",
   "devDependencies": {
-    "substance": "0.141.0",
-    "substance-bundler": "0.25.5"
+    "esm": "3.0.47",
+    "nyc": "11.8.0",
+    "substance": "0.142.0",
+    "substance-bundler": "0.25.5",
+    "substance-test": "0.13.2",
+    "tap-spec": "5.0.0"
   },
   "peerDependencies": {
-    "substance": "0.141.0"
+    "substance": "0.142.0"
   }
 }

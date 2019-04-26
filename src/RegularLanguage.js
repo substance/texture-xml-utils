@@ -1,13 +1,13 @@
 import { forEach, isString } from 'substance'
 import DFABuilder from './DFABuilder'
 import DFA from './DFA'
-import _isTextNodeEmpty from './_isTextNodeEmpty'
 
 const { START, END, TEXT, EPSILON } = DFA
 
 // retains the structured representation
 // and compiles a DFA for efficient processing
 export class Expression {
+  // TODO: why does the expression need a name?
   constructor (name, root) {
     this.name = name
     this.root = root
@@ -23,10 +23,6 @@ export class Expression {
     return this.root.toString()
   }
 
-  copy () {
-    return this.root.copy()
-  }
-
   toJSON () {
     return {
       name: this.name,
@@ -39,17 +35,9 @@ export class Expression {
   }
 
   /*
-    Simplifies the whole expression eliminating unnecessary structure.
-  */
-  _normalize () {
-    this.root._normalize()
-  }
-
-  /*
     Some structures get compiled into a DFA, for instance.
   */
   _compile () {
-    // TODO: we need to
     this.root._compile()
   }
 
@@ -61,9 +49,6 @@ export class Expression {
       } else {
         // otherwise just the position is wrong
         msg.push(`<${token}> is not allowed at the current position in <${this.name}>.\n${this.toString()}`)
-        // TODO: try to find a suitable alternative position
-        // we need to refactor this, as here we do not have access to the actual element
-        // so we can't tell, if there is a valid position
       }
     } else {
       msg.push(`TEXT is not allowed at the current position: ${state.trace.join(',')}\n${this.toString()}`)
@@ -87,17 +72,12 @@ export function createExpression (name, root) {
 }
 
 export class DFAExpr extends Expression {
-  // validation API
   getInitialState () {
     return {
       dfaState: START,
       errors: [],
       trace: []
     }
-  }
-
-  canConsume (state, token) {
-    return this.dfa.canConsume(state.dfaState, token)
   }
 
   consume (state, token) {
@@ -138,19 +118,6 @@ export class DFAExpr extends Expression {
     this._allowedChildren = _collectAllTokensFromDFA(this.dfa)
   }
 
-  _findInsertPos (el, newTag, mode) {
-    const root = this.root
-    if (root instanceof Sequence) {
-      return this._findInsertPosInSequence(el, newTag, mode)
-    } else if (root instanceof Plus || root instanceof Kleene) {
-      if (mode === 'first') {
-        return 0
-      } else {
-        return el.childNodes.length
-      }
-    }
-  }
-
   _isValid (_tokens) {
     let state = this.getInitialState()
     for (let i = 0; i < _tokens.length; i++) {
@@ -164,50 +131,6 @@ export class DFAExpr extends Expression {
       }
     }
     return this.isFinished(state)
-  }
-
-  _findInsertPosInSequence (el, newTag, mode) {
-    const childNodes = el.getChildNodes()
-    // Note: we try out all combinations, starting either at the end
-    // or at the beginning, and return the first valid combination
-    // Probably this could be improved, this is a start, though
-    const tokens = []
-    childNodes.forEach((child) => {
-      // ATTENTION: we need to be careful here
-      // as we use this either with real DOMElement
-      // or with XMLDocumentNodes which are just fake DOMElements
-      const tagName = child.tagName
-      if (!tagName) {
-        if (child._isDOMElement && child.isTextNode() && !_isTextNodeEmpty(child)) {
-          tokens.push(TEXT)
-        } else {
-          tokens.push(null)
-        }
-      } else {
-        tokens.push(tagName)
-      }
-    })
-    const L = tokens.length
-    const self = this
-    function _isValid (pos) {
-      let _tokens = tokens.slice(0)
-      _tokens.splice(pos, 0, newTag)
-      return self._isValid(_tokens)
-    }
-    if (mode === 'first') {
-      for (let pos = 0; pos <= L; pos++) {
-        if (_isValid(pos)) {
-          return pos
-        }
-      }
-    } else {
-      for (let pos = L; pos >= 0; pos--) {
-        if (_isValid(pos)) {
-          return pos
-        }
-      }
-    }
-    return -1
   }
 }
 
@@ -237,10 +160,6 @@ export class InterleaveExpr extends Expression {
       // maintain the index of the dfa which has been consumed the last token
       lastDFA: 0
     }
-  }
-
-  canConsume (state, token) {
-    return (this._findNextDFA(state, token) >= 0)
   }
 
   consume (state, token) {
@@ -303,11 +222,6 @@ export class InterleaveExpr extends Expression {
     }
     return -1
   }
-
-  _findInsertPos(el, newTag, mode) { // eslint-disable-line
-    // TODO: we need to find out a correct way to do this
-    return el.childNodes.length
-  }
 }
 
 export class Token {
@@ -323,9 +237,9 @@ export class Token {
     return this.name
   }
 
-  copy () {
-    return new Token(this.name)
-  }
+  // copy () {
+  //   return new Token(this.name)
+  // }
 
   _normalize () {}
 
@@ -338,36 +252,42 @@ Token.fromJSON = function (data) {
   return new Token(data)
 }
 
-/*
-  (a|b|c)
-*/
-export class Choice {
+class GroupExpression {
   constructor (blocks) {
     this.blocks = blocks
   }
 
-  copy () {
-    return new Choice(this.blocks.map(b => b.copy()))
-  }
-
   toJSON () {
     return {
-      type: '|',
+      type: this.token,
       blocks: this.blocks.map(b => b.toJSON())
     }
   }
 
-  _normalize () {
-    const blocks = this.blocks
-    for (let i = blocks.length - 1; i >= 0; i--) {
-      let block = blocks[i]
-      block._normalize()
-      // unwrap doubled Choices
-      if (block instanceof Choice) {
-        blocks.splice(i, 1, ...(block.blocks))
-      }
-    }
+  toString () {
+    return '(' + this.blocks.map(b => b.toString()).join(this.token) + ')'
   }
+}
+
+/*
+  (a|b|c)
+*/
+export class Choice extends GroupExpression {
+  // copy () {
+  //   return new Choice(this.blocks.map(b => b.copy()))
+  // }
+
+  // _normalize () {
+  //   const blocks = this.blocks
+  //   for (let i = blocks.length - 1; i >= 0; i--) {
+  //     let block = blocks[i]
+  //     block._normalize()
+  //     // unwrap doubled Choices
+  //     if (block instanceof Choice) {
+  //       blocks.splice(i, 1, ...(block.blocks))
+  //     }
+  //   }
+  // }
 
   _compile () {
     let dfa = new DFABuilder()
@@ -387,9 +307,9 @@ export class Choice {
     return dfa
   }
 
-  toString () {
-    return '(' + this.blocks.map(b => b.toString()).join('|') + ')'
-  }
+  get token () { return Choice.token }
+
+  static get token () { return '|' }
 }
 
 Choice.fromJSON = function (data) {
@@ -401,21 +321,10 @@ Choice.fromJSON = function (data) {
 /*
   (a,b,c) (= ordered)
 */
-export class Sequence {
-  constructor (blocks) {
-    this.blocks = blocks
-  }
-
-  copy () {
-    return new Sequence(this.blocks.map(b => b.copy()))
-  }
-
-  toJSON () {
-    return {
-      type: ',',
-      blocks: this.blocks.map(b => b.toJSON())
-    }
-  }
+export class Sequence extends GroupExpression {
+  // copy () {
+  //   return new Sequence(this.blocks.map(b => b.copy()))
+  // }
 
   _compile () {
     let dfa = new DFABuilder()
@@ -435,21 +344,9 @@ export class Sequence {
     return dfa
   }
 
-  _normalize () {
-    const blocks = this.blocks
-    for (let i = blocks.length - 1; i >= 0; i--) {
-      let block = blocks[i]
-      block._normalize()
-      // unwrap doubled Choices
-      if (block instanceof Sequence) {
-        blocks.splice(i, 1, ...(block.blocks))
-      }
-    }
-  }
+  get token () { return Sequence.token }
 
-  toString () {
-    return '(' + this.blocks.map(b => b.toString()).join(',') + ')'
-  }
+  static get token () { return ',' }
 }
 
 Sequence.fromJSON = function (data) {
@@ -461,33 +358,24 @@ Sequence.fromJSON = function (data) {
 /*
   ~(a,b,c) (= unordered)
 */
-export class Interleave {
-  constructor (blocks) {
-    this.blocks = blocks
-  }
-
-  copy () {
-    return new Interleave(this.blocks.map(b => b.copy()))
-  }
+export class Interleave extends GroupExpression {
+  // copy () {
+  //   return new Interleave(this.blocks.map(b => b.copy()))
+  // }
 
   toString () {
     return '(' + this.blocks.map(b => b.toString()).join(', ') + ')[unordered]'
   }
 
-  toJSON () {
-    return {
-      type: '~',
-      blocks: this.blocks.map(b => b.toJSON())
-    }
-  }
-
-  _normalize () {
-    // TODO
-  }
+  _normalize () {}
 
   _compile () {
     this.blocks.forEach(block => block._compile())
   }
+
+  get token () { return Interleave.token }
+
+  static get token () { return '~' }
 }
 
 Interleave.fromJSON = function (data) {
@@ -496,24 +384,30 @@ Interleave.fromJSON = function (data) {
   }))
 }
 
-/*
-  ()?
-*/
-export class Optional {
+class BlockExpression {
   constructor (block) {
     this.block = block
   }
 
-  copy () {
-    return new Optional(this.block.copy())
-  }
-
   toJSON () {
     return {
-      type: '?',
+      type: this.token,
       block: this.block.toJSON()
     }
   }
+
+  toString () {
+    return this.block.toString() + this.token
+  }
+}
+
+/*
+  ()?
+*/
+export class Optional extends BlockExpression {
+  // copy () {
+  //   return new Optional(this.block.copy())
+  // }
 
   _compile () {
     const block = this.block
@@ -527,19 +421,9 @@ export class Optional {
     return this.dfa
   }
 
-  _normalize () {
-    const block = this.block
-    block._normalize()
-    if (block instanceof Optional) {
-      this.block = block.block
-    } else if (block instanceof Kleene) {
-      console.error('FIXME -  <optional> is useless here', this.toString())
-    }
-  }
+  get token () { return Optional.token }
 
-  toString () {
-    return this.block.toString() + '?'
-  }
+  static get token () { return '?' }
 }
 
 Optional.fromJSON = function (data) {
@@ -549,21 +433,10 @@ Optional.fromJSON = function (data) {
 /*
   ()*
 */
-export class Kleene {
-  constructor (block) {
-    this.block = block
-  }
-
-  copy () {
-    return new Kleene(this.block.copy())
-  }
-
-  toJSON () {
-    return {
-      type: '*',
-      block: this.block.toJSON()
-    }
-  }
+export class Kleene extends BlockExpression {
+  // copy () {
+  //   return new Kleene(this.block.copy())
+  // }
 
   _compile () {
     const block = this.block
@@ -577,19 +450,9 @@ export class Kleene {
     return this.dfa
   }
 
-  _normalize () {
-    const block = this.block
-    block._normalize()
-    if (block instanceof Optional || block instanceof Kleene) {
-      this.block = block.block
-    } else if (block instanceof Plus) {
-      throw new Error('This does not make sense:' + this.toString())
-    }
-  }
+  get token () { return Kleene.token }
 
-  toString () {
-    return this.block.toString() + '*'
-  }
+  static get token () { return '*' }
 }
 
 Kleene.fromJSON = function (data) {
@@ -599,21 +462,10 @@ Kleene.fromJSON = function (data) {
 /*
   ()+
 */
-export class Plus {
-  constructor (block) {
-    this.block = block
-  }
-
-  copy () {
-    return new Plus(this.block.copy())
-  }
-
-  toJSON () {
-    return {
-      type: '+',
-      block: this.block.toJSON()
-    }
-  }
+export class Plus extends BlockExpression {
+  // copy () {
+  //   return new Plus(this.block.copy())
+  // }
 
   _compile () {
     const block = this.block
@@ -627,19 +479,9 @@ export class Plus {
     return this.dfa
   }
 
-  _normalize () {
-    const block = this.block
-    block._normalize()
-    if (block instanceof Optional || block instanceof Kleene) {
-      throw new Error('This does not make sense:' + this.toString())
-    } else if (block instanceof Plus) {
-      this.block = block.block
-    }
-  }
+  get token () { return Plus.token }
 
-  toString () {
-    return this.block.toString() + '+'
-  }
+  static get token () { return '+' }
 }
 
 Plus.fromJSON = function (data) {
@@ -654,11 +496,11 @@ function _fromJSON (data) {
       return Interleave.fromJSON(data)
     case '|':
       return Choice.fromJSON(data)
-    case '?':
+    case Optional.token:
       return Optional.fromJSON(data)
-    case '+':
+    case Plus.token:
       return Plus.fromJSON(data)
-    case '*':
+    case Kleene.token:
       return Kleene.fromJSON(data)
     default:
       if (isString(data)) {

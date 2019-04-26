@@ -1,0 +1,1 @@
+import './XMLSchema.test.js'

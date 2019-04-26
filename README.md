@@ -1,2 +1,3 @@
-# texture-xmlschema
+# texture-xml-utils
+
 Toolset for working with xml schemas.

@@ -227,30 +227,32 @@ export default class DFABuilder {
     return cloneDeep(this.transitions)
   }
 
+  // ATTENTION: due to the decision to clone definition elements during RNG compilation
+  // this never gets called
   // creates a copy of this DFA, with new state IDS
-  copy () {
-    let t = cloneDeep(this.transitions)
-    if (this.transitions) {
-      let states = Object.keys(t)
-      let map = { START: START, END: END }
-      states.forEach((id) => {
-        if (id === START || id === END) return
-        map[id] = uuid()
-      })
-      forEach(t, (T, from) => {
-        if (from !== START && from !== END) {
-          t[map[from]] = T
-          delete t[from]
-        }
-        forEach(T, (to, token) => {
-          if (to !== START && to !== END) {
-            T[token] = map[to]
-          }
-        })
-      })
-    }
-    return new DFABuilder(t)
-  }
+  // copy () {
+  //   let t = cloneDeep(this.transitions)
+  //   if (this.transitions) {
+  //     let states = Object.keys(t)
+  //     let map = { START: START, END: END }
+  //     states.forEach((id) => {
+  //       if (id === START || id === END) return
+  //       map[id] = uuid()
+  //     })
+  //     forEach(t, (T, from) => {
+  //       if (from !== START && from !== END) {
+  //         t[map[from]] = T
+  //         delete t[from]
+  //       }
+  //       forEach(T, (to, token) => {
+  //         if (to !== START && to !== END) {
+  //           T[token] = map[to]
+  //         }
+  //       })
+  //     })
+  //   }
+  //   return new DFABuilder(t)
+  // }
 }
 
 DFABuilder.singleToken = function (token) {

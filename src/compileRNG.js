@@ -1,5 +1,4 @@
-import { isString, DefaultDOMElement } from 'substance'
-import nameWithoutNS from './nameWithoutNS'
+import { isString, DefaultDOMElement, nameWithoutNS } from 'substance'
 import XMLSchema from './XMLSchema'
 import DFA from './DFA'
 import { createExpression, Token, Choice, Sequence, Optional, Plus, Kleene, Interleave } from './RegularLanguage'
@@ -135,10 +134,6 @@ function _transformRNG (grammar) {
 
 function _transformElementDefinition (doc, name, orig, defs) {
   let el = doc.createElement('element').attr('name', name)
-  // TODO: remove this
-  // NOTE: setting type to implicit by default
-  // this is refined when calling analyzeSchema
-  el.attr('type', 'implicit')
   // TODO: try to separate attributes from children
   // now go through all children and wrap them into attributes and children
   let attributes = doc.createElement('attributes')
@@ -225,6 +220,10 @@ function _transformBlock (doc, block, defs, visiting = {}) {
       return []
     }
     default: {
+      // TODO: while this is a valid approach, it could be more efficient
+      // to 'reuse' already processed elements (i.e. reuse their DFA)
+      // For that reason, I have commented out all occurrences where I used to resuse the DFA
+      // being dead code at the moment
       let clone = block.clone(false)
       block.children.forEach((child) => {
         clone.append(_transformBlock(doc, child, defs, visiting))
@@ -375,14 +374,17 @@ function _processBlocks (children, grammar) {
 }
 
 function _processSequence (el, grammar) {
-  if (el.expr) return el.expr.copy()
+  // TODO: seems that this optimization is not needed any more as references get inlined.
+  // looking at _expandRef() it looks as though the corresponding DOMElement gets cloned on recursion
+  // see above
+  // if (el.expr) return el.expr.copy()
   const blocks = _processBlocks(el.children, grammar)
   el.expr = new Sequence(blocks)
   return el.expr
 }
 
 function _processChoice (el, grammar) {
-  if (el.expr) return el.expr.copy()
+  // if (el.expr) return el.expr.copy()
   let blocks = _processBlocks(el.children, grammar)
   el.expr = new Choice(blocks)
   return el.expr
@@ -392,7 +394,7 @@ function _processReference (ref, grammar) {
   const name = ref.attr('name')
   const def = grammar.defs[name]
   if (!def) throw new Error(`Illegal ref: ${name} is not defined.`)
-  if (def.expr) return def.expr.copy()
+  // if (def.expr) return def.expr.copy()
   // Guard for cyclic references
   // TODO: what to do with cyclic refs?
   if (grammar._visiting[name]) {

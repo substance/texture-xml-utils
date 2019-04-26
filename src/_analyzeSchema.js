@@ -40,11 +40,6 @@ function _analyzeElementSchema (elementSchema, elementSchemas) {
       }
     })
   }
-  if (_siblings.length === 0) {
-    // use 'element' for nodes with type 'implicit'
-    // TODO: do we really need 'implicit'?
-    if (elementSchema.type === 'implicit') elementSchema.type = 'element'
-  }
 
   let hasText = false
   let hasElements = false
@@ -72,7 +67,7 @@ function _analyzeElementSchema (elementSchema, elementSchemas) {
   // TODO: document what these fields are used for.
   if (hasElements) elementSchema.isStructured = true
   if (hasText) elementSchema.isText = true
-  if (elementSchema.type === 'implicit') {
+  if (!elementSchema.type) {
     if (hasText) {
       elementSchema.type = 'text'
     } else {
