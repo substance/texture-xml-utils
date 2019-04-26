@@ -23,13 +23,6 @@ export class Expression {
     return this.root.toString()
   }
 
-  toJSON () {
-    return {
-      name: this.name,
-      content: this.root.toJSON()
-    }
-  }
-
   isAllowed (tagName) {
     return Boolean(this._allowedChildren[tagName])
   }
@@ -55,12 +48,6 @@ export class Expression {
     }
     return msg.join('')
   }
-}
-
-Expression.fromJSON = function (data) {
-  const name = data.name
-  const root = _fromJSON(data.content)
-  return createExpression(name, root)
 }
 
 export function createExpression (name, root) {
@@ -233,35 +220,14 @@ export class Token {
     return this.name
   }
 
-  toJSON () {
-    return this.name
-  }
-
-  // copy () {
-  //   return new Token(this.name)
-  // }
-
-  _normalize () {}
-
   _compile () {
     this.dfa = DFABuilder.singleToken(this.name)
   }
 }
 
-Token.fromJSON = function (data) {
-  return new Token(data)
-}
-
 class GroupExpression {
   constructor (blocks) {
     this.blocks = blocks
-  }
-
-  toJSON () {
-    return {
-      type: this.token,
-      blocks: this.blocks.map(b => b.toJSON())
-    }
   }
 
   toString () {
@@ -312,12 +278,6 @@ export class Choice extends GroupExpression {
   static get token () { return '|' }
 }
 
-Choice.fromJSON = function (data) {
-  return new Choice(data.blocks.map((block) => {
-    return _fromJSON(block)
-  }))
-}
-
 /*
   (a,b,c) (= ordered)
 */
@@ -349,12 +309,6 @@ export class Sequence extends GroupExpression {
   static get token () { return ',' }
 }
 
-Sequence.fromJSON = function (data) {
-  return new Sequence(data.blocks.map((block) => {
-    return _fromJSON(block)
-  }))
-}
-
 /*
   ~(a,b,c) (= unordered)
 */
@@ -378,22 +332,9 @@ export class Interleave extends GroupExpression {
   static get token () { return '~' }
 }
 
-Interleave.fromJSON = function (data) {
-  return new Interleave(data.blocks.map((block) => {
-    return _fromJSON(block)
-  }))
-}
-
 class BlockExpression {
   constructor (block) {
     this.block = block
-  }
-
-  toJSON () {
-    return {
-      type: this.token,
-      block: this.block.toJSON()
-    }
   }
 
   toString () {
@@ -426,10 +367,6 @@ export class Optional extends BlockExpression {
   static get token () { return '?' }
 }
 
-Optional.fromJSON = function (data) {
-  return new Optional(_fromJSON(data.block))
-}
-
 /*
   ()*
 */
@@ -455,10 +392,6 @@ export class Kleene extends BlockExpression {
   static get token () { return '*' }
 }
 
-Kleene.fromJSON = function (data) {
-  return new Kleene(_fromJSON(data.block))
-}
-
 /*
   ()+
 */
@@ -482,30 +415,4 @@ export class Plus extends BlockExpression {
   get token () { return Plus.token }
 
   static get token () { return '+' }
-}
-
-Plus.fromJSON = function (data) {
-  return new Plus(_fromJSON(data.block))
-}
-
-function _fromJSON (data) {
-  switch (data.type) {
-    case ',':
-      return Sequence.fromJSON(data)
-    case '~':
-      return Interleave.fromJSON(data)
-    case '|':
-      return Choice.fromJSON(data)
-    case Optional.token:
-      return Optional.fromJSON(data)
-    case Plus.token:
-      return Plus.fromJSON(data)
-    case Kleene.token:
-      return Kleene.fromJSON(data)
-    default:
-      if (isString(data)) {
-        return new Token(data)
-      }
-      throw new Error('Unsupported data.')
-  }
 }

@@ -37,29 +37,9 @@ export default class XMLSchema {
     return this.startElement
   }
 
-  toJSON () {
-    let result = {
-      start: this.getStartElement(),
-      elements: {}
-    }
-    forEach(this._elementSchemas, (schema, name) => {
-      result.elements[name] = schema.toJSON()
-    })
-    return result
-  }
-
   validateElement (el) {
     let tagName = el.tagName
     let elementSchema = this.getElementSchema(tagName)
     return _validateElement(elementSchema, el)
   }
-}
-
-XMLSchema.fromJSON = function (data, startElement, publicId, dtd) {
-  let elementSchemas = {}
-  forEach(data.elements, (elData) => {
-    let elSchema = ElementSchema.fromJSON(elData)
-    elementSchemas[elSchema.name] = elSchema
-  })
-  return new XMLSchema(elementSchemas, startElement, publicId, dtd)
 }
