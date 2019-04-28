@@ -34,6 +34,9 @@ b.task('build:lib', () => {
     }],
     external: [ 'substance' ]
   })
+  b.minify(DIST + 'texture-xml-utils.js', {
+    debug: false
+  })
 })
 
 b.task('build:tests:browser', () => {

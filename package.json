@@ -5,6 +5,9 @@
   "main": "dist/texture-xml-utils.cjs.js",
   "jsnext:main": "index.es.js",
   "scripts": {
+    "lint": "standard \"src/**/*.js\"",
+    "prepack": "npm install && node make publish",
+    "pretest": "npm run lint",
     "test": "node --require esm test | tap-spec",
     "test-debug": "node --inspect-brk --require esm test",
     "cover": "nyc --require esm --reporter=lcov --reporter=text node test"
@@ -13,7 +16,10 @@
     "type": "git",
     "url": "git+https://github.com/substance/texture-xml-utils.git"
   },
-  "author": "",
+  "author": {
+    "name": "Substance",
+    "email": "info@substance.io"
+  },
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/substance/texture-xml-utils/issues"
@@ -25,9 +31,23 @@
     "substance": "0.142.0",
     "substance-bundler": "0.25.5",
     "substance-test": "0.13.2",
-    "tap-spec": "5.0.0"
+    "tap-spec": "5.0.0",
+    "uglify-es": "3.3.9"
   },
   "peerDependencies": {
-    "substance": "0.142.0"
-  }
+    "substance": "^0.142.0"
+  },
+  "nyc": {
+    "include": [
+      "src/**/*.js"
+    ]
+  },
+  "files": [
+    "src",
+    "dist",
+    "index.es.js",
+    "package.json",
+    "*.md",
+    "bundler"
+  ]
 }
