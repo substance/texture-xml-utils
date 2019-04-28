@@ -1,4 +1,4 @@
-import { isNumber, isArray } from 'substance'
+import { isNumber, isArray, isString } from 'substance'
 import XMLSchema from './XMLSchema'
 import ElementSchema from './ElementSchema'
 import { Token, Choice, Sequence, Interleave, Optional, Kleene, Plus, DFAExpr, InterleaveExpr, createExpression } from './RegularLanguage'
@@ -149,8 +149,13 @@ export function serializeXMLSchema (xmlSchema) {
   return JSON.stringify(data)
 }
 
-export function deserializeXMLSchema (str) {
-  let data = JSON.parse(str)
+export function deserializeXMLSchema (xmlSchemaInput, publicId = '', dtd = '') {
+  let data
+  if (isString(xmlSchemaInput)) {
+    data = JSON.parse(xmlSchemaInput)
+  } else {
+    data = xmlSchemaInput
+  }
   let literals = data.literals
   let schemaData = data.schema
 
@@ -204,6 +209,6 @@ export function deserializeXMLSchema (str) {
     elementSchemas[elementSchema.name] = elementSchema
   })
 
-  let schema = new XMLSchema(elementSchemas, startElement)
+  let schema = new XMLSchema(elementSchemas, startElement, publicId, dtd)
   return schema
 }

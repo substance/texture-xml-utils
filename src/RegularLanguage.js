@@ -1,4 +1,4 @@
-import { forEach, isString } from 'substance'
+import { forEach } from 'substance'
 import DFABuilder from './DFABuilder'
 import DFA from './DFA'
 
