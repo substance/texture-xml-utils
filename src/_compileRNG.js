@@ -1,4 +1,4 @@
-import { isString, DefaultDOMElement, nameWithoutNS } from 'substance'
+import { DefaultDOMElement, nameWithoutNS } from 'substance'
 import XMLSchema from './XMLSchema'
 import DFA from './DFA'
 import { createExpression, Token, Choice, Sequence, Optional, Plus, Kleene, Interleave } from './RegularLanguage'
@@ -12,28 +12,16 @@ const TEXT = DFA.TEXT
   We use regular RNG, with slight restrictions plus custom extensions,
   and compile it into our internal format.
 */
-export default function compileRNG (fs, searchDirs, entry) {
-  let rng
-  // used for testing
-  if (arguments.length === 1 && isString(arguments[0])) {
-    rng = DefaultDOMElement.parseXML(arguments[0])
-  } else {
-    rng = _loadRNG(fs, searchDirs, entry)
-  }
-
+export default function _compileRNG (fs, path, rngFile, searchDirs) {
+  let rng = _loadRNG(fs, path, rngFile, searchDirs)
   let grammar = rng.find('grammar')
   if (!grammar) throw new Error('<grammar> not found.')
-
   // collect all definitions, allowing for custom overrides
   _registerDefinitions(grammar)
-
   // turn the RNG schema into our internal data structure
   let transformedGrammar = _transformRNG(grammar)
-
   // console.log(prettyPrintXML(transformedGrammar))
-
   let xmlSchema = _compile(transformedGrammar)
-
   return xmlSchema
 }
 

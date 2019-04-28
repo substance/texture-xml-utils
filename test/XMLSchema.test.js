@@ -1,6 +1,6 @@
 import { test as _test } from 'substance-test'
 import { DefaultDOMElement } from 'substance'
-import { compileRNG, validateXML, serializeXMLSchema, deserializeXMLSchema } from '../index.es.js'
+import { _compileRNG, validateXML, serializeXMLSchema, deserializeXMLSchema } from '../index.es.js'
 
 function XMLSchemaTests (withSerialization) {
   const test = function (title, fn) {
@@ -37,7 +37,7 @@ function XMLSchemaTests (withSerialization) {
         </start>
       </grammar>
     `
-    let xmlSchema = _compileRNG(RNG, withSerialization)
+    let xmlSchema = _compileRNGString(RNG, withSerialization)
     let doc, result
 
     doc = DefaultDOMElement.parseXML(`
@@ -91,7 +91,7 @@ function XMLSchemaTests (withSerialization) {
         </start>
       </grammar>
     `
-    let xmlSchema = _compileRNG(RNG, withSerialization)
+    let xmlSchema = _compileRNGString(RNG, withSerialization)
     let doc, result
     doc = DefaultDOMElement.parseXML(`
       <foo>
@@ -138,7 +138,7 @@ function XMLSchemaTests (withSerialization) {
   </grammar>
   `
   test('XMLSchema: Text elements should be allowed to be empty', t => {
-    let xmlSchema = _compileRNG(FOO)
+    let xmlSchema = _compileRNGString(FOO)
     let doc = DefaultDOMElement.parseXML(`<foo></foo>`)
     let result = validateXML(xmlSchema, doc)
     t.ok(result.ok, 'empty text element is valid')
@@ -146,7 +146,7 @@ function XMLSchemaTests (withSerialization) {
   })
 
   test('XMLSchema: Text elements should allow for CDATA', t => {
-    let xmlSchema = _compileRNG(FOO, withSerialization)
+    let xmlSchema = _compileRNGString(FOO, withSerialization)
     let doc = DefaultDOMElement.parseXML(`<foo><![CDATA[x^2 > y]]></foo>`)
     let result = validateXML(xmlSchema, doc)
     t.ok(result.ok, 'text element with CDATA is valid')
@@ -154,7 +154,7 @@ function XMLSchemaTests (withSerialization) {
   })
 
   test('XMLSchema: unknown element', t => {
-    let xmlSchema = _compileRNG(SEQUENCE, withSerialization)
+    let xmlSchema = _compileRNGString(SEQUENCE, withSerialization)
     let doc = DefaultDOMElement.parseXML(`<foo><bar /></foo>`)
     let result = validateXML(xmlSchema, doc)
     t.notOk(result.ok, 'xml is not valid')
@@ -188,7 +188,7 @@ function XMLSchemaTests (withSerialization) {
   `
 
   test('XMLSchema: zeroOrMore choices', t => {
-    let xmlSchema = _compileRNG(ZERO_OR_MORE_CHOICES, withSerialization)
+    let xmlSchema = _compileRNGString(ZERO_OR_MORE_CHOICES, withSerialization)
     let result
     result = validateXML(xmlSchema, DefaultDOMElement.parseXML(`<foo></foo>`))
     t.ok(result.ok, 'xml is valid')
@@ -225,7 +225,7 @@ function XMLSchemaTests (withSerialization) {
   `
 
   test('XMLSchema: sequence', t => {
-    let xmlSchema = _compileRNG(SEQUENCE, withSerialization)
+    let xmlSchema = _compileRNGString(SEQUENCE, withSerialization)
     let result = validateXML(xmlSchema, DefaultDOMElement.parseXML(`<foo><baz>bla</baz><bar>blupp</bar></foo>`))
     t.notOk(result.ok, 'xml is not valid')
     t.end()
@@ -255,7 +255,7 @@ function XMLSchemaTests (withSerialization) {
   `
 
   test('XMLSchema: plus', t => {
-    let xmlSchema = _compileRNG(PLUS, withSerialization)
+    let xmlSchema = _compileRNGString(PLUS, withSerialization)
     let result
     result = validateXML(xmlSchema, DefaultDOMElement.parseXML(`<foo><bar></bar></foo>`))
     t.ok(result.ok, 'xml is valid')
@@ -287,7 +287,7 @@ function XMLSchemaTests (withSerialization) {
   `
 
   test('XMLSchema: optional', t => {
-    let xmlSchema = _compileRNG(OPTIONAL, withSerialization)
+    let xmlSchema = _compileRNGString(OPTIONAL, withSerialization)
     let result
     result = validateXML(xmlSchema, DefaultDOMElement.parseXML(`<foo><bar /></foo>`))
     t.ok(result.ok, 'xml is valid')
@@ -327,7 +327,7 @@ function XMLSchemaTests (withSerialization) {
   `
 
   test('XMLSchema: sequence of optional groups', t => {
-    let xmlSchema = _compileRNG(SEQUENCE_OF_GROUPS, withSerialization)
+    let xmlSchema = _compileRNGString(SEQUENCE_OF_GROUPS, withSerialization)
     let result
     result = validateXML(xmlSchema, DefaultDOMElement.parseXML(`<foo></foo>`))
     t.ok(result.ok, 'xml is valid')
@@ -385,7 +385,7 @@ function XMLSchemaTests (withSerialization) {
   `
 
   test('XMLSchema: sequence of optional and required elements', t => {
-    let xmlSchema = _compileRNG(SEQUENCE_OF_OPTIONAL_AND_REQUIRED_ELEMENTS, withSerialization)
+    let xmlSchema = _compileRNGString(SEQUENCE_OF_OPTIONAL_AND_REQUIRED_ELEMENTS, withSerialization)
     let result
     result = validateXML(xmlSchema, DefaultDOMElement.parseXML(`<foo></foo>`))
     t.notOk(result.ok, 'xml is not valid')
@@ -437,15 +437,55 @@ function XMLSchemaTests (withSerialization) {
 
   const TWO_RNGS = {
     './lib/Parent.rng': PARENT_SCHEMA,
-    './ChildSchema.rng': CHILD_SCHEMA
+    './Child.rng': CHILD_SCHEMA
   }
 
   test('XMLSchema: including and extending another RNG', t => {
-    let xmlSchema = compileRNG(new SimpleVFS(TWO_RNGS), ['.', './lib'], 'ChildSchema.rng')
+    let xmlSchema = _compileRNG(new SimpleVFS(TWO_RNGS), pathStub, './Child.rng', ['./lib'])
     if (withSerialization) {
       xmlSchema = _withSerialization(xmlSchema)
     }
     let doc = DefaultDOMElement.parseXML(`<foo>bla<bar>blupp</bar>bla</foo>`)
+    let result = validateXML(xmlSchema, doc)
+    t.ok(result.ok, 'xml is valid')
+    t.end()
+  })
+
+  const GRAND_CHILD_SCHEMA = `
+    <grammar>
+      <include href="Child.rng"/>
+      <define name="foo_content">
+        <zeroOrMore>
+          <choice>
+            <text />
+            <ref name="bar" />
+            <ref name="baz" />
+          </choice>
+        </zeroOrMore>
+      </define>
+      <define name="baz">
+        <element name="baz">
+          <text/>
+        </element>
+      </define>
+      <start>
+        <ref name="foo"/>
+      </start>
+    </grammar>
+  `
+
+  const THREE_RNGS = {
+    './lib/Parent.rng': PARENT_SCHEMA,
+    './lib/Child.rng': CHILD_SCHEMA,
+    './GrandChild.rng': GRAND_CHILD_SCHEMA
+  }
+
+  test('XMLSchema: including nother RNGs recursively', t => {
+    let xmlSchema = _compileRNG(new SimpleVFS(THREE_RNGS), pathStub, './GrandChild.rng', ['./lib'])
+    if (withSerialization) {
+      xmlSchema = _withSerialization(xmlSchema)
+    }
+    let doc = DefaultDOMElement.parseXML(`<foo>bla<bar>blupp</bar>bla<baz>blupp</baz>bla</foo>`)
     let result = validateXML(xmlSchema, doc)
     t.ok(result.ok, 'xml is valid')
     t.end()
@@ -502,7 +542,7 @@ function XMLSchemaTests (withSerialization) {
   `
 
   test('XMLSchema: combining choices', t => {
-    let xmlSchema = _compileRNG(COMBINING_CHOICES, withSerialization)
+    let xmlSchema = _compileRNGString(COMBINING_CHOICES, withSerialization)
     let result
     result = validateXML(xmlSchema, DefaultDOMElement.parseXML(`<foo></foo>`))
     t.ok(result.ok, 'xml is valid')
@@ -550,7 +590,7 @@ function XMLSchemaTests (withSerialization) {
   `
 
   test('XMLSchema: re-using groups', t => {
-    let xmlSchema = _compileRNG(REUSING_GROUPS, withSerialization)
+    let xmlSchema = _compileRNGString(REUSING_GROUPS, withSerialization)
     let result
     result = validateXML(xmlSchema, DefaultDOMElement.parseXML(`<foo></foo>`))
     t.notOk(result.ok, 'xml is not valid')
@@ -602,7 +642,7 @@ function XMLSchemaTests (withSerialization) {
   `
 
   test('XMLSchema: alternative sequences', t => {
-    let xmlSchema = _compileRNG(ALTERNATIVE_SUB_SEQUENCES, withSerialization)
+    let xmlSchema = _compileRNGString(ALTERNATIVE_SUB_SEQUENCES, withSerialization)
     let result
     result = validateXML(xmlSchema, DefaultDOMElement.parseXML(`<foo></foo>`))
     t.notOk(result.ok, 'xml is not valid')
@@ -632,7 +672,7 @@ function XMLSchemaTests (withSerialization) {
   `
 
   test('XMLSchema: empty plus (edge case)', t => {
-    let xmlSchema = _compileRNG(EMPTY_PLUS, withSerialization)
+    let xmlSchema = _compileRNGString(EMPTY_PLUS, withSerialization)
     let result
     result = validateXML(xmlSchema, DefaultDOMElement.parseXML(`<foo></foo>`))
     t.ok(result.ok, 'xml is valid')
@@ -665,8 +705,20 @@ class SimpleVFS {
   }
 }
 
-function _compileRNG (rngStr, withSerialization) {
-  let xmlSchema = compileRNG(rngStr)
+const pathStub = {
+  dirname (f) {
+    let idx = f.lastIndexOf('/')
+    if (idx >= 0) {
+      return f.slice(0, idx)
+    } else {
+      return f
+    }
+  }
+}
+
+function _compileRNGString (rngStr, withSerialization) {
+  let vfs = new SimpleVFS({ './Test.rng': rngStr })
+  let xmlSchema = _compileRNG(vfs, pathStub, './Test.rng', [])
   if (withSerialization) {
     xmlSchema = _withSerialization(xmlSchema)
   }
