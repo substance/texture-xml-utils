@@ -28,6 +28,7 @@
   "devDependencies": {
     "esm": "3.0.47",
     "nyc": "11.8.0",
+    "standard": "12.0.1",
     "substance": "0.142.0",
     "substance-bundler": "0.25.5",
     "substance-test": "0.13.2",
