@@ -1,6 +1,6 @@
 {
   "name": "texture-xml-utils",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "Toolset for working with xml schemas.",
   "main": "dist/texture-xml-utils.cjs.js",
   "jsnext:main": "index.es.js",
