@@ -3,7 +3,9 @@
   "version": "0.2.0",
   "description": "Toolset for working with xml schemas.",
   "main": "dist/texture-xml-utils.cjs.js",
-  "jsnext:main": "index.es.js",
+  "module": "dist/texture-xml-utils.es.js",
+  "esnext": "index.es.js",
+  "browser": "dist/texture-xml-utils.js",
   "scripts": {
     "lint": "standard \"src/**/*.js\"",
     "prepack": "npm install && node make publish",
