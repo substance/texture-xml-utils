@@ -1,5 +1,6 @@
 /* eslint-disable no-template-curly-in-string */
 const b = require('substance-bundler')
+const rollup = require('substance-bundler/extensions/rollup')
 
 const DIST = 'dist/'
 const TMP = 'tmp/'
@@ -20,7 +21,8 @@ b.task('default', ['publish'])
 b.task('build', ['build:lib'])
 
 b.task('build:lib', () => {
-  b.js('index.es.js', {
+  rollup(b, {
+    input: 'index.es.js',
     output: [{
       file: DIST + 'texture-xml-utils.js',
       format: 'umd',
@@ -31,17 +33,18 @@ b.task('build:lib', () => {
     }, {
       file: DIST + 'texture-xml-utils.cjs.js',
       format: 'cjs'
+    }, {
+      file: DIST + 'texture-xml-utils.es.js',
+      format: 'esm'
     }],
     external: [ 'substance' ]
-  })
-  b.minify(DIST + 'texture-xml-utils.js', {
-    debug: false
   })
 })
 
 b.task('build:tests:browser', () => {
-  b.js('test/index.js', {
-    output: [{
+  rollup(b, {
+    input: 'test/index.js',
+    output: {
       file: TMP + 'tests.js',
       format: 'umd',
       name: 'tests',
@@ -49,7 +52,7 @@ b.task('build:tests:browser', () => {
         'substance': 'substance',
         'substance-test': 'substanceTest'
       }
-    }],
+    },
     external: [ 'substance', 'substance-test' ]
   })
 })

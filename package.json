@@ -28,9 +28,10 @@
   "devDependencies": {
     "esm": "3.0.47",
     "nyc": "11.8.0",
+    "rollup": "^1.20.3",
     "standard": "12.0.1",
     "substance": "0.142.0",
-    "substance-bundler": "0.25.5",
+    "substance-bundler": "^0.27.1",
     "substance-test": "0.13.2",
     "tap-spec": "5.0.0",
     "uglify-es": "3.3.9"
